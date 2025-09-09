@@ -1,0 +1,56 @@
+Create a modern AI education platform for Turkish students with the following features:
+
+DESIGN REQUIREMENTS:
+- Dark theme with purple/blue gradient backgrounds
+- Modern, clean student-friendly interface
+- Card-based layout with rounded corners and shadows
+- Smooth hover animations and transitions
+- Professional educational platform look
+
+CORE FEATURES:
+1. Authentication System:
+   - Login page with email/password
+   - Register page for new students
+   - Form validation and error handling
+
+2. Dashboard Layout:
+   - Left sidebar navigation with icons
+   - Main content area
+   - Responsive design for mobile/desktop
+
+3. Navigation Pages:
+   - Dashboard (homepage with overview)
+   - Chat (AI conversation interface)
+   - Documents (chat history and saved conversations)
+   - Profile (student information and settings)
+
+4. Chat System:
+   - Real-time chat interface with AI
+   - Subject selection dropdown (Matematik, Fen Bilgisi, Türkçe, İngilizce, Tarih)
+   - Message bubbles for user and AI responses
+   - Typing indicator
+   - Message history display
+
+5. Additional Features:
+   - Student profile management
+   - Dark/light theme toggle
+   - Responsive mobile design
+   - Clean typography with good readability
+
+TECHNICAL REQUIREMENTS:
+- React with TypeScript
+- Tailwind CSS for styling
+- Lucide React for icons only
+- Modern ES6+ JavaScript
+- Clean, production-ready code
+- No external UI libraries (pure Tailwind)
+
+STYLING GUIDELINES:
+- Primary colors: Purple (#8B5CF6) and Blue (#3B82F6) gradients
+- Dark background (#0F172A, #1E293B)
+- White text on dark backgrounds
+- Cards with subtle shadows and hover effects
+- Modern button styles with gradients
+- Clean spacing and typography
+
+Make this a complete, working application that a Turkish student can use for educational AI assistance. All text should be in Turkish where appropriate.
