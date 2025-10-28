@@ -11,7 +11,7 @@ import {
   Eye,
   AlertCircle
 } from 'lucide-react';
-import jsPDF from 'jspdf';
+import html2pdf from 'html2pdf.js';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import pptxgen from 'pptxgenjs';
 import Card from '../components/UI/Card';
@@ -152,43 +152,47 @@ Okul Asistanım - Sofia ile Öğren
   };
 
   const downloadPDF = () => {
-    const doc = new jsPDF();
-    const lines = generatedContent.split('\n');
-    let y = 20;
-    
-    lines.forEach((line) => {
-      if (line.startsWith('# ')) {
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.text(line.substring(2), 20, y);
-        y += 15;
-      } else if (line.startsWith('## ')) {
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text(line.substring(3), 20, y);
-        y += 10;
-      } else if (line.startsWith('### ')) {
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text(line.substring(4), 20, y);
-        y += 8;
-      } else if (line.trim()) {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        const splitText = doc.splitTextToSize(line, 170);
-        doc.text(splitText, 20, y);
-        y += splitText.length * 5;
-      } else {
-        y += 5;
-      }
-      
-      if (y > 280) {
-        doc.addPage();
-        y = 20;
-      }
-    });
-    
-    doc.save(`${documentRequest.topic}-${documentRequest.subject}.pdf`);
+    // Markdown'ı HTML'e çevir (basit formatlar için)
+    let htmlContent = generatedContent
+      .replace(/### (.*)/g, '<h3 style="font-size: 14px; font-weight: bold; margin: 12px 0 8px 0; color: #1a1a1a;">$1</h3>')
+      .replace(/## (.*)/g, '<h2 style="font-size: 16px; font-weight: bold; margin: 16px 0 10px 0; color: #1a1a1a;">$1</h2>')
+      .replace(/# (.*)/g, '<h1 style="font-size: 20px; font-weight: bold; margin: 20px 0 12px 0; color: #1a1a1a;">$1</h1>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n\n/g, '</p><p style="margin: 8px 0; line-height: 1.6; color: #333;">')
+      .replace(/\n/g, '<br/>');
+
+    // HTML şablonu oluştur (Türkçe font desteği ile)
+    const html = `
+      <div style="font-family: 'Arial', 'Helvetica', sans-serif; padding: 40px; max-width: 800px; background: white; color: #1a1a1a;">
+        <div style="text-align: center; border-bottom: 3px solid #4F46E5; padding-bottom: 20px; margin-bottom: 30px;">
+          <h1 style="font-size: 24px; font-weight: bold; color: #4F46E5; margin: 0 0 8px 0;">${documentRequest.topic}</h1>
+          <p style="font-size: 14px; color: #666; margin: 0;"><strong>Ders:</strong> ${documentRequest.subject} | <strong>Seviye:</strong> ${documentRequest.gradeLevel}</p>
+        </div>
+        <div style="font-size: 11px; line-height: 1.8; color: #1a1a1a;">
+          <p style="margin: 8px 0; line-height: 1.6; color: #333;">
+            ${htmlContent}
+          </p>
+        </div>
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #E5E7EB; text-align: center; font-size: 10px; color: #999;">
+          <p style="margin: 0;">Bu döküman Sofia tarafından oluşturulmuştur - Okul Asistanım</p>
+          <p style="margin: 4px 0 0 0;">${new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        </div>
+      </div>
+    `;
+
+    // PDF ayarları
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: `${documentRequest.topic}-${documentRequest.subject}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // HTML'i PDF'e çevir
+    const element = document.createElement('div');
+    element.innerHTML = html;
+    html2pdf().set(opt).from(element).save();
   };
 
   const downloadWord = async () => {
