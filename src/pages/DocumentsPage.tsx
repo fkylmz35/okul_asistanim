@@ -4,7 +4,7 @@ import { FileText, Download, Clock, Search, Filter, File, FileSpreadsheet, FileI
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
@@ -36,6 +36,14 @@ const DocumentsPage: React.FC = () => {
         return;
       }
 
+      // Development mode - Supabase not configured
+      if (!isSupabaseConfigured) {
+        console.log('📄 Development mode: No documents yet');
+        setDocuments([]);
+        setLoading(false);
+        return;
+      }
+
       try {
         const { data, error } = await supabase
           .from('documents')
@@ -55,7 +63,7 @@ const DocumentsPage: React.FC = () => {
     };
 
     fetchDocuments();
-  }, [user]);
+  }, [user, showError]);
 
   // Get document icon
   const getDocumentIcon = (type: string) => {
