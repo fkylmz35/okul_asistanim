@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
+import { ToastProvider } from './contexts/ToastContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/Layout/MainLayout';
 import LandingPage from './pages/LandingPage';
@@ -18,11 +20,13 @@ import YKSPage from './pages/YKSPage';
 
 function App() {
   return (
-    <ThemeProvider>
-      <Router>
-        <AuthProvider>
-          <ChatProvider>
-            <Routes>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <ToastProvider>
+          <Router>
+            <AuthProvider>
+              <ChatProvider>
+                <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
@@ -75,11 +79,13 @@ function App() {
                   </MainLayout>
                 </ProtectedRoute>
               } />
-            </Routes>
-          </ChatProvider>
-        </AuthProvider>
-      </Router>
-    </ThemeProvider>
+                </Routes>
+              </ChatProvider>
+            </AuthProvider>
+          </Router>
+        </ToastProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

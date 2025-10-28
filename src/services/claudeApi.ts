@@ -1,14 +1,30 @@
 import type { DocumentGenerationRequest, GeneratedDocument, ClaudeAPIResponse } from '../types/ai';
 
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_API_VERSION = '2023-06-01';
 const CLAUDE_MODEL = 'claude-3-5-sonnet-20241022'; // En güncel Claude modeli
 
-// Get API key from environment variables
+// Determine API endpoint based on environment
+const getApiEndpoint = (): string => {
+  // Production: Use Vercel Edge Function (secure)
+  if (import.meta.env.PROD) {
+    return '/api/claude';
+  }
+
+  // Development: Check if we have direct API key (only for testing)
+  const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
+  if (apiKey && apiKey !== 'your_claude_api_key_here' && apiKey !== 'your_claude_api_key') {
+    // Use direct API (will cause CORS error, but useful for testing)
+    return 'https://api.anthropic.com/v1/messages';
+  }
+
+  // Default: Use local proxy endpoint
+  return '/api/claude';
+};
+
+// Get API key (only for direct API calls in development)
 const getApiKey = (): string | null => {
   try {
     const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-    if (!apiKey || apiKey === 'your_claude_api_key') {
+    if (!apiKey || apiKey === 'your_claude_api_key_here' || apiKey === 'your_claude_api_key') {
       return null;
     }
     return apiKey;
@@ -20,13 +36,60 @@ const getApiKey = (): string | null => {
 
 // Check if Claude API is configured
 export const isClaudeConfigured = (): boolean => {
+  // In production, check if proxy endpoint is available
+  if (import.meta.env.PROD) {
+    return true; // Assume proxy is configured in production
+  }
+
+  // In development, check for API key
   try {
     const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-    return !!(apiKey && apiKey !== 'your_claude_api_key');
+    return !!(apiKey && apiKey !== 'your_claude_api_key_here' && apiKey !== 'your_claude_api_key');
   } catch (error) {
     console.warn('Error checking Claude API configuration:', error);
     return false;
   }
+};
+
+// Call Claude API (via proxy or direct)
+const callClaudeAPI = async (requestBody: {
+  model: string;
+  max_tokens: number;
+  temperature: number;
+  system: string;
+  messages: Array<{ role: string; content: string }>;
+}): Promise<ClaudeAPIResponse> => {
+  const endpoint = getApiEndpoint();
+  const isDirect = endpoint.includes('anthropic.com');
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  // Add API key only for direct calls
+  if (isDirect) {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      throw new Error('Claude API key bulunamadı. Lütfen .env dosyasını kontrol edin.');
+    }
+    headers['x-api-key'] = apiKey;
+    headers['anthropic-version'] = '2023-06-01';
+  }
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      `Claude API hatası: ${response.status} - ${errorData.error?.message || errorData.message || response.statusText}`
+    );
+  }
+
+  return await response.json();
 };
 
 /**
@@ -35,10 +98,8 @@ export const isClaudeConfigured = (): boolean => {
 export const generateDocumentContent = async (
   request: DocumentGenerationRequest
 ): Promise<GeneratedDocument> => {
-  const apiKey = getApiKey();
-
-  if (!apiKey) {
-    throw new Error('Claude API key bulunamadı. Lütfen .env dosyasını kontrol edin.');
+  if (!isClaudeConfigured()) {
+    throw new Error('Claude API yapılandırılmamış. Lütfen ayarları kontrol edin.');
   }
 
   // Determine content length based on user selection
@@ -107,35 +168,18 @@ Lütfen şu formatta bir döküman hazırla:
 Bu döküman Sofia tarafından oluşturulmuştur - Okul Asistanım`;
 
   try {
-    const response = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': CLAUDE_API_VERSION
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: request.length === 'long' ? 4096 : request.length === 'medium' ? 3072 : 2048,
-        temperature: 0.7,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: userPrompt
-          }
-        ]
-      })
+    const data = await callClaudeAPI({
+      model: CLAUDE_MODEL,
+      max_tokens: request.length === 'long' ? 4096 : request.length === 'medium' ? 3072 : 2048,
+      temperature: 0.7,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: userPrompt
+        }
+      ]
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        `Claude API hatası: ${response.status} - ${errorData.error?.message || response.statusText}`
-      );
-    }
-
-    const data: ClaudeAPIResponse = await response.json();
 
     if (!data.content || data.content.length === 0) {
       throw new Error('Claude API boş yanıt döndü');
@@ -168,10 +212,8 @@ export const generateChatResponse = async (
   message: string,
   context?: string
 ): Promise<string> => {
-  const apiKey = getApiKey();
-
-  if (!apiKey) {
-    throw new Error('Claude API key bulunamadı. Lütfen .env dosyasını kontrol edin.');
+  if (!isClaudeConfigured()) {
+    throw new Error('Claude API yapılandırılmamış. Lütfen ayarları kontrol edin.');
   }
 
   const systemPrompt = `Sen Sofia, yardımsever bir eğitim asistanısın. Öğrencilere ders konularında yardımcı oluyorsun.
@@ -185,32 +227,19 @@ Görevin: Öğrencinin sorularını anlaşılır şekilde cevaplamak ve öğrenm
 - Türkçe dilbilgisi kurallarına dikkat et`;
 
   try {
-    const response = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': CLAUDE_API_VERSION
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 1024,
-        temperature: 0.8,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: context ? `${context}\n\nÖğrenci: ${message}` : message
-          }
-        ]
-      })
+    const data = await callClaudeAPI({
+      model: CLAUDE_MODEL,
+      max_tokens: 1024,
+      temperature: 0.8,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: context ? `${context}\n\nÖğrenci: ${message}` : message
+        }
+      ]
     });
 
-    if (!response.ok) {
-      throw new Error(`Claude API hatası: ${response.status}`);
-    }
-
-    const data: ClaudeAPIResponse = await response.json();
     return data.content[0].text;
   } catch (error) {
     console.error('Chat API Error:', error);
