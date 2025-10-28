@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Target, Clock, BookOpen, Calculator, FlaskRound as Flask, Globe, History, Heart, Play, ArrowLeft } from 'lucide-react';
+import { Target, Clock, BookOpen, Calculator, FlaskRound as Flask, Globe, History, Heart, Play } from 'lucide-react';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import ExamInterface from '../components/Exam/ExamInterface';

@@ -4,14 +4,12 @@ import { Send, Plus, Bot, User as UserIcon, Loader2 } from 'lucide-react';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import { useChat } from '../contexts/ChatContext';
-import { useAuth } from '../contexts/AuthContext';
 import { subjects } from '../data/subjects';
 
 const ChatPage: React.FC = () => {
   const [message, setMessage] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const { currentConversation, addMessage, createConversation, isTyping } = useChat();
-  const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {

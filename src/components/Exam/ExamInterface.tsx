@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Clock, CheckCircle, AlertCircle, Trophy, Eye } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
 import Card from '../UI/Card';
 import Button from '../UI/Button';
 import ExamResults from './ExamResults';
@@ -18,7 +18,7 @@ interface ExamInterfaceProps {
   examType: string;
   totalQuestions: number;
   timeLimit: number; // in minutes
-  subjects: Array<{ name: string; questions: number; icon: any; color: string }>;
+  subjects: Array<{ name: string; questions: number; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; color: string }>;
   onBack: () => void;
 }
 

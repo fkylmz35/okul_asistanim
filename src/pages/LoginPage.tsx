@@ -18,7 +18,7 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!email || !password) {
       setError('Lütfen tüm alanları doldurun');
       return;
@@ -26,7 +26,7 @@ const LoginPage: React.FC = () => {
 
     try {
       await login(email, password);
-    } catch (error) {
+    } catch {
       setError('Giriş başarısız. E-posta ve şifrenizi kontrol edin.');
     }
   };

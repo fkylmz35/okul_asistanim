@@ -144,15 +144,6 @@ const LandingPage: React.FC = () => {
     }
   ];
 
-  // Flatten FAQ data for indexing
-  const allFAQs = faqData.flatMap((category, categoryIndex) =>
-    category.questions.map((faq, questionIndex) => ({
-      ...faq,
-      category: category.category,
-      globalIndex: categoryIndex * 100 + questionIndex
-    }))
-  );
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-purple-900/20 dark:to-blue-900/20">
       {/* Header */}

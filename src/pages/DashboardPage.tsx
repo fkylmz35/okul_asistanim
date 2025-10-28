@@ -11,7 +11,7 @@ const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const iconMap: { [key: string]: React.ComponentType<any> } = {
+  const iconMap: { [key: string]: React.ComponentType<React.SVGProps<SVGSVGElement>> } = {
     Calculator,
     Flask,
     BookOpen,

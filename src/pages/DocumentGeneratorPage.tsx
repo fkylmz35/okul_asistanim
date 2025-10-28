@@ -1,58 +1,94 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  FileText, 
-  Download, 
-  Sparkles, 
-  BookOpen, 
-  FileEdit, 
+import {
+  FileText,
+  Download,
+  Sparkles,
+  BookOpen,
+  FileEdit,
   Presentation,
   Bot,
-  ArrowRight,
-  Settings,
-  Eye
+  Eye,
+  AlertCircle
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
+import pptxgen from 'pptxgenjs';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import FloatingLabelInput from '../components/UI/FloatingLabelInput';
 import { documentTemplates } from '../data/documentTemplates';
 import { DocumentRequest } from '../types';
+import { generateDocumentContent, isClaudeConfigured } from '../services/claudeApi';
 
 const DocumentGeneratorPage: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [documentRequest, setDocumentRequest] = useState<DocumentRequest>({
     type: 'pdf',
     topic: '',
+    content: '',
     subject: '',
     gradeLevel: '',
     length: 'medium',
-    complexity: 'intermediate',
     template: ''
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const claudeConfigured = isClaudeConfigured();
 
   const subjects = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'İngilizce', 'Tarih', 'Coğrafya'];
   const gradeOptions = ['5. Sınıf', '6. Sınıf', '7. Sınıf', '8. Sınıf', '9. Sınıf', '10. Sınıf', '11. Sınıf', '12. Sınıf'];
 
-  const iconMap: { [key: string]: React.ComponentType<any> } = {
+  const iconMap: { [key: string]: React.ComponentType<React.SVGProps<SVGSVGElement>> } = {
     FileText,
     FileEdit,
     Presentation,
     BookOpen
   };
 
-  const generateContent = () => {
-    const { topic, subject, gradeLevel, complexity } = documentRequest;
-    
+  const generateContent = async (): Promise<string> => {
+    const { topic, content, subject, gradeLevel, type } = documentRequest;
+
+    // Claude API yapılandırılmışsa, gerçek AI içeriği üret
+    if (claudeConfigured) {
+      try {
+        const result = await generateDocumentContent({
+          topic,
+          content,
+          subject,
+          gradeLevel,
+          length: documentRequest.length,
+          documentType: type
+        });
+
+        return result.content;
+      } catch (err) {
+        console.error('Claude API Error:', err);
+        setError(err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu');
+
+        // Hata durumunda fallback template kullan
+        return generateFallbackContent();
+      }
+    }
+
+    // Claude API yapılandırılmamışsa, demo içerik göster
+    return generateFallbackContent();
+  };
+
+  const generateFallbackContent = (): string => {
+    const { topic, content, subject, gradeLevel } = documentRequest;
+
     return `
-# ${topic} - ${subject} Ders Notları
+# ${topic}
+
+**Ders:** ${subject} | **Seviye:** ${gradeLevel}
+
+${content ? `## Ödev İçeriği Analizi\n${content}\n\n` : ''}
 
 ## Giriş
-Merhaba! Ben Sofia, senin öğrenme asistanın. Bu dökümanı ${gradeLevel} seviyesinde ${topic} konusunu öğrenmen için hazırladım.
+Merhaba! Ben Sofia, senin öğrenme asistanın. Bu dökümanı ${gradeLevel} seviyesinde ${subject} dersinde ${topic} konusunu öğrenmen için hazırladım.
 
 ## Ana Konular
 
@@ -72,7 +108,7 @@ Konuyu daha iyi anlamak için çözülmüş örnekler:
 Kendini test etmek için sorular:
 - Kolay seviye sorular
 - Orta seviye sorular
-${complexity === 'advanced' ? '- İleri seviye sorular' : ''}
+- İleri seviye sorular
 
 ## Sofia'nın Önerileri
 Bu konuyu öğrenirken:
@@ -91,19 +127,28 @@ Okul Asistanım - Sofia ile Öğren
   };
 
   const handleGenerate = async () => {
-    if (!documentRequest.topic || !documentRequest.subject || !documentRequest.gradeLevel) {
+    if (!documentRequest.topic || !documentRequest.content || !documentRequest.subject || !documentRequest.gradeLevel) {
       return;
     }
 
     setIsGenerating(true);
-    
-    // Simulate Sofia thinking
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const content = generateContent();
-    setGeneratedContent(content);
-    setShowPreview(true);
-    setIsGenerating(false);
+    setError(null);
+
+    try {
+      // Claude API gerçek zamanlı çalışacak, demo için minimum bekleme
+      if (!claudeConfigured) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+
+      const content = await generateContent();
+      setGeneratedContent(content);
+      setShowPreview(true);
+    } catch (err) {
+      console.error('Document generation error:', err);
+      setError(err instanceof Error ? err.message : 'Döküman oluşturulurken bir hata oluştu');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const downloadPDF = () => {
@@ -181,6 +226,222 @@ Okul Asistanım - Sofia ile Öğren
     URL.revokeObjectURL(url);
   };
 
+  const downloadPowerPoint = async () => {
+    const pres = new pptxgen();
+    const { topic, subject, gradeLevel } = documentRequest;
+
+    // Set presentation properties
+    pres.author = 'Sofia - Okul Asistanım';
+    pres.company = 'Okul Asistanım';
+    pres.subject = `${subject} - ${topic}`;
+    pres.title = `${topic} Ders Sunumu`;
+
+    // Slide 1: Title Slide
+    const slide1 = pres.addSlide();
+    slide1.background = { fill: '4472C4' };
+    slide1.addText(topic, {
+      x: 0.5,
+      y: 1.5,
+      w: 9,
+      h: 1.5,
+      fontSize: 44,
+      bold: true,
+      color: 'FFFFFF',
+      align: 'center'
+    });
+    slide1.addText(`${subject} - ${gradeLevel}`, {
+      x: 0.5,
+      y: 3.5,
+      w: 9,
+      h: 0.8,
+      fontSize: 28,
+      color: 'FFFFFF',
+      align: 'center'
+    });
+    slide1.addText('Sofia ile Öğren', {
+      x: 0.5,
+      y: 5,
+      w: 9,
+      h: 0.5,
+      fontSize: 18,
+      color: 'FFFFFF',
+      align: 'center',
+      italic: true
+    });
+
+    // Slide 2: Giriş
+    const slide2 = pres.addSlide();
+    slide2.addText('Giriş', {
+      x: 0.5,
+      y: 0.5,
+      w: 9,
+      h: 0.7,
+      fontSize: 32,
+      bold: true,
+      color: '4472C4'
+    });
+    slide2.addText([
+      { text: 'Merhaba! ', options: { bold: true, fontSize: 18 } },
+      { text: `Ben Sofia, senin öğrenme asistanın.\n\n`, options: { fontSize: 18 } },
+      { text: `Bu sunumu ${gradeLevel} seviyesinde ${topic} konusunu öğrenmen için hazırladım.\n\n`, options: { fontSize: 16 } },
+      { text: 'Bu sunumda öğreneceğin konular:\n', options: { fontSize: 16, bold: true } },
+      { text: '• Temel kavramlar\n', options: { fontSize: 14 } },
+      { text: '• Uygulama örnekleri\n', options: { fontSize: 14 } },
+      { text: '• Pratik sorular', options: { fontSize: 14 } }
+    ], {
+      x: 0.5,
+      y: 1.5,
+      w: 9,
+      h: 4
+    });
+
+    // Slide 3: Temel Kavramlar
+    const slide3 = pres.addSlide();
+    slide3.addText('1. Temel Kavramlar', {
+      x: 0.5,
+      y: 0.5,
+      w: 9,
+      h: 0.7,
+      fontSize: 32,
+      bold: true,
+      color: '4472C4'
+    });
+    slide3.addText([
+      { text: `${topic} konusunda bilmen gereken temel kavramlar:\n\n`, options: { fontSize: 16, bold: true } },
+      { text: '✓ Tanım ve örnekler\n', options: { fontSize: 14 } },
+      { text: '✓ Günlük hayattan örnekler\n', options: { fontSize: 14 } },
+      { text: '✓ Önemli formüller ve kurallar\n\n', options: { fontSize: 14 } },
+      { text: '💡 İpucu: ', options: { fontSize: 14, bold: true, color: 'FF6B35' } },
+      { text: 'Bu kavramları öğrenirken kendi örneklerini oluşturmaya çalış!', options: { fontSize: 14, italic: true } }
+    ], {
+      x: 0.5,
+      y: 1.5,
+      w: 9,
+      h: 4
+    });
+
+    // Slide 4: Uygulama Örnekleri
+    const slide4 = pres.addSlide();
+    slide4.addText('2. Uygulama Örnekleri', {
+      x: 0.5,
+      y: 0.5,
+      w: 9,
+      h: 0.7,
+      fontSize: 32,
+      bold: true,
+      color: '4472C4'
+    });
+    slide4.addText([
+      { text: 'Konuyu daha iyi anlamak için çözülmüş örnekler:\n\n', options: { fontSize: 16, bold: true } },
+      { text: '📝 Adım adım çözüm yöntemleri\n', options: { fontSize: 14 } },
+      { text: '🔄 Farklı yaklaşımlar\n', options: { fontSize: 14 } },
+      { text: '⚠️ Yaygın hatalar ve çözümleri\n\n', options: { fontSize: 14 } },
+      { text: '✨ Sofia ile birlikte: ', options: { fontSize: 14, bold: true, color: '6A4C93' } },
+      { text: 'Örnekleri anlamadığın yerler için benimle sohbet edebilirsin!', options: { fontSize: 14, italic: true } }
+    ], {
+      x: 0.5,
+      y: 1.5,
+      w: 9,
+      h: 4
+    });
+
+    // Slide 5: Pratik Sorular
+    const slide5 = pres.addSlide();
+    slide5.addText('3. Pratik Sorular', {
+      x: 0.5,
+      y: 0.5,
+      w: 9,
+      h: 0.7,
+      fontSize: 32,
+      bold: true,
+      color: '4472C4'
+    });
+    slide5.addText([
+      { text: 'Kendini test etmek için sorular:\n\n', options: { fontSize: 16, bold: true } },
+      { text: '🟢 Kolay seviye sorular\n', options: { fontSize: 14 } },
+      { text: '🟡 Orta seviye sorular\n', options: { fontSize: 14 } },
+      { text: '🔴 İleri seviye sorular\n\n', options: { fontSize: 14 } },
+      { text: '🎯 Hedef: ', options: { fontSize: 14, bold: true, color: '2A9D8F' } },
+      { text: 'Her seviyeden soruları çözerek konuyu pekiştir!', options: { fontSize: 14, italic: true } }
+    ], {
+      x: 0.5,
+      y: 1.5,
+      w: 9,
+      h: 4
+    });
+
+    // Slide 6: Sofia'nın Önerileri
+    const slide6 = pres.addSlide();
+    slide6.addText('Sofia\'nın Önerileri', {
+      x: 0.5,
+      y: 0.5,
+      w: 9,
+      h: 0.7,
+      fontSize: 32,
+      bold: true,
+      color: '6A4C93'
+    });
+    slide6.addText([
+      { text: 'Bu konuyu öğrenirken:\n\n', options: { fontSize: 16, bold: true } },
+      { text: '✅ Düzenli tekrar yap\n', options: { fontSize: 14 } },
+      { text: '✅ Örnekleri kendi kelimelerinle açıkla\n', options: { fontSize: 14 } },
+      { text: '✅ Anlamadığın yerleri not al\n', options: { fontSize: 14 } },
+      { text: '✅ Sofia ile sohbet ederek sorularını sor\n\n', options: { fontSize: 14 } },
+      { text: '💬 Unutma: ', options: { fontSize: 14, bold: true, color: 'E76F51' } },
+      { text: 'Öğrenmek bir süreçtir. Ben her zaman yanındayım!', options: { fontSize: 14, italic: true } }
+    ], {
+      x: 0.5,
+      y: 1.5,
+      w: 9,
+      h: 4
+    });
+
+    // Slide 7: Final Slide
+    const slide7 = pres.addSlide();
+    slide7.background = { fill: '6A4C93' };
+    slide7.addText('Tebrikler! 🎉', {
+      x: 0.5,
+      y: 2,
+      w: 9,
+      h: 1,
+      fontSize: 40,
+      bold: true,
+      color: 'FFFFFF',
+      align: 'center'
+    });
+    slide7.addText(`${topic} konusunu başarıyla tamamladın!`, {
+      x: 0.5,
+      y: 3.2,
+      w: 9,
+      h: 0.8,
+      fontSize: 24,
+      color: 'FFFFFF',
+      align: 'center'
+    });
+    slide7.addText('Sofia ile daha fazla konu öğrenmek için sohbet sayfasını ziyaret edebilirsin.', {
+      x: 0.5,
+      y: 4.5,
+      w: 9,
+      h: 0.6,
+      fontSize: 16,
+      color: 'FFFFFF',
+      align: 'center',
+      italic: true
+    });
+    slide7.addText(`${new Date().toLocaleDateString('tr-TR')} - Okul Asistanım`, {
+      x: 0.5,
+      y: 5.5,
+      w: 9,
+      h: 0.4,
+      fontSize: 12,
+      color: 'FFFFFF',
+      align: 'center'
+    });
+
+    // Save the presentation
+    await pres.writeFile({ fileName: `${documentRequest.topic}-${documentRequest.subject}.pptx` });
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       <motion.div
@@ -225,6 +486,30 @@ Okul Asistanım - Sofia ile Öğren
               </div>
             </div>
           </Card>
+
+          {/* Claude API Warning */}
+          {!claudeConfigured && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4"
+            >
+              <Card className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700">
+                <div className="flex items-start space-x-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-300 mb-1">
+                      Demo Modu
+                    </h4>
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-relaxed">
+                      Claude API yapılandırılmamış. Şu an demo içerik gösteriliyor.
+                      Gerçek AI içeriği için <code className="bg-yellow-100 dark:bg-yellow-800/50 px-1 rounded">.env</code> dosyasına Claude API anahtarınızı ekleyin.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Template Selection */}
           <div className="mt-6">
@@ -274,49 +559,109 @@ Okul Asistanım - Sofia ile Öğren
         >
           <Card className="p-6 lg:p-8">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Döküman Detayları</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <FloatingLabelInput
-                label="Konu Başlığı"
-                value={documentRequest.topic}
-                onChange={(value) => setDocumentRequest(prev => ({ ...prev, topic: value }))}
-                required
-              />
 
-              <div className="relative">
-                <select
-                  value={documentRequest.subject}
-                  onChange={(e) => setDocumentRequest(prev => ({ ...prev, subject: e.target.value }))}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:border-blue-500 dark:focus:border-purple-500 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-purple-500/20 transition-all duration-200 text-gray-900 dark:text-white"
-                >
-                  <option value="">Ders Seçin</option>
-                  {subjects.map((subject) => (
-                    <option key={subject} value={subject} className="bg-white dark:bg-gray-800">
-                      {subject}
-                    </option>
-                  ))}
-                </select>
+            {/* Error Message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6"
+              >
+                <Card className="p-4 bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700">
+                  <div className="flex items-start space-x-3">
+                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-red-800 dark:text-red-300 mb-1">
+                        Hata Oluştu
+                      </h4>
+                      <p className="text-xs text-red-700 dark:text-red-400 leading-relaxed">
+                        {error}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setError(null)}
+                      className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+
+            <div className="space-y-6 mb-6">
+              {/* Konu Başlığı */}
+              <div>
+                <FloatingLabelInput
+                  label="Konu Başlığı"
+                  value={documentRequest.topic}
+                  onChange={(value) => setDocumentRequest(prev => ({ ...prev, topic: value }))}
+                  required
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  AI bu başlığı dökümanın ana konusu olarak kullanacak
+                </p>
               </div>
 
-              <div className="relative">
-                <select
-                  value={documentRequest.gradeLevel}
-                  onChange={(e) => setDocumentRequest(prev => ({ ...prev, gradeLevel: e.target.value }))}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:border-blue-500 dark:focus:border-purple-500 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-purple-500/20 transition-all duration-200 text-gray-900 dark:text-white"
-                >
-                  <option value="">Sınıf Seviyesi</option>
-                  {gradeOptions.map((grade) => (
-                    <option key={grade} value={grade} className="bg-white dark:bg-gray-800">
-                      {grade}
-                    </option>
-                  ))}
-                </select>
+              {/* Ödev İçeriği */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Ödev İçeriği <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={documentRequest.content}
+                  onChange={(e) => setDocumentRequest(prev => ({ ...prev, content: e.target.value }))}
+                  placeholder="Ödev veya ders notu ile ilgili detayları buraya yazın. Sofia bu içeriği analiz edip ona göre detaylı bir döküman oluşturacak..."
+                  rows={6}
+                  required
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:border-blue-500 dark:focus:border-purple-500 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-purple-500/20 transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Sofia bu içeriği analiz edip zenginleştirilmiş bir döküman hazırlayacak
+                </p>
               </div>
 
+              {/* Ders ve Sınıf Seçimi */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <select
+                    value={documentRequest.subject}
+                    onChange={(e) => setDocumentRequest(prev => ({ ...prev, subject: e.target.value }))}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:border-blue-500 dark:focus:border-purple-500 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-purple-500/20 transition-all duration-200 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Ders Seçin</option>
+                    {subjects.map((subject) => (
+                      <option key={subject} value={subject} className="bg-white dark:bg-gray-800">
+                        {subject}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="relative">
+                  <select
+                    value={documentRequest.gradeLevel}
+                    onChange={(e) => setDocumentRequest(prev => ({ ...prev, gradeLevel: e.target.value }))}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:border-blue-500 dark:focus:border-purple-500 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-purple-500/20 transition-all duration-200 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Sınıf Seviyesi</option>
+                    {gradeOptions.map((grade) => (
+                      <option key={grade} value={grade} className="bg-white dark:bg-gray-800">
+                        {grade}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Döküman Uzunluğu */}
               <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Döküman Uzunluğu
+                </label>
                 <select
                   value={documentRequest.length}
-                  onChange={(e) => setDocumentRequest(prev => ({ ...prev, length: e.target.value as any }))}
+                  onChange={(e) => setDocumentRequest(prev => ({ ...prev, length: e.target.value as 'short' | 'medium' | 'long' }))}
                   className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:border-blue-500 dark:focus:border-purple-500 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-purple-500/20 transition-all duration-200 text-gray-900 dark:text-white"
                 >
                   <option value="short">Kısa (1-2 sayfa)</option>
@@ -326,35 +671,10 @@ Okul Asistanım - Sofia ile Öğren
               </div>
             </div>
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Zorluk Seviyesi
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { value: 'basic', label: 'Temel', color: 'from-green-500 to-teal-500' },
-                  { value: 'intermediate', label: 'Orta', color: 'from-blue-500 to-purple-500' },
-                  { value: 'advanced', label: 'İleri', color: 'from-purple-500 to-pink-500' }
-                ].map((level) => (
-                  <button
-                    key={level.value}
-                    onClick={() => setDocumentRequest(prev => ({ ...prev, complexity: level.value as any }))}
-                    className={`p-3 rounded-lg border text-center transition-all duration-200 ${
-                      documentRequest.complexity === level.value
-                        ? `bg-gradient-to-r ${level.color} text-white border-transparent`
-                        : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                  >
-                    <span className="font-semibold text-sm">{level.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div className="flex space-x-4">
-              <Button 
+              <Button
                 onClick={handleGenerate}
-                disabled={!documentRequest.topic || !documentRequest.subject || !documentRequest.gradeLevel || isGenerating}
+                disabled={!documentRequest.topic || !documentRequest.content || !documentRequest.subject || !documentRequest.gradeLevel || isGenerating}
                 className="flex-1"
               >
                 {isGenerating ? (
@@ -390,14 +710,24 @@ Okul Asistanım - Sofia ile Öğren
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">Döküman Önizlemesi</h3>
                   <div className="flex space-x-2">
-                    <Button onClick={downloadPDF} className="px-4">
-                      <Download className="w-4 h-4 mr-2" />
-                      PDF İndir
-                    </Button>
-                    <Button onClick={downloadWord} variant="outline" className="px-4">
-                      <Download className="w-4 h-4 mr-2" />
-                      Word İndir
-                    </Button>
+                    {(documentRequest.type === 'pdf' || selectedTemplate === 'ders-notlari') && (
+                      <Button onClick={downloadPDF} className="px-4">
+                        <Download className="w-4 h-4 mr-2" />
+                        PDF İndir
+                      </Button>
+                    )}
+                    {(documentRequest.type === 'docx' || selectedTemplate === 'odev-sablonu') && (
+                      <Button onClick={downloadWord} variant="outline" className="px-4">
+                        <Download className="w-4 h-4 mr-2" />
+                        Word İndir
+                      </Button>
+                    )}
+                    {(documentRequest.type === 'pptx' || selectedTemplate === 'powerpoint-sunum') && (
+                      <Button onClick={downloadPowerPoint} variant="outline" className="px-4">
+                        <Download className="w-4 h-4 mr-2" />
+                        PowerPoint İndir
+                      </Button>
+                    )}
                   </div>
                 </div>
                 

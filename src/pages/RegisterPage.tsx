@@ -40,12 +40,12 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!validateForm()) return;
 
     try {
       await register(name, email, password);
-    } catch (error) {
+    } catch {
       setError('Kayıt başarısız. Lütfen tekrar deneyin.');
     }
   };

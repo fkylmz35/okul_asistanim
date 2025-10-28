@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Target, Clock, CheckCircle, XCircle, Minus, Eye, ArrowLeft, RotateCcw } from 'lucide-react';
+import { Trophy, Clock, CheckCircle, XCircle, Minus, Eye, ArrowLeft, RotateCcw } from 'lucide-react';
 import Card from '../UI/Card';
 import Button from '../UI/Button';
 

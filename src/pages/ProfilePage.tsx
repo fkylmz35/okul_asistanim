@@ -442,7 +442,7 @@ const ProfilePage: React.FC = () => {
                 {learningStyles.map((style) => (
                   <button
                     key={style.id}
-                    onClick={() => setEditForm(prev => ({ ...prev, learningStyle: style.id as any }))}
+                    onClick={() => setEditForm(prev => ({ ...prev, learningStyle: style.id as 'visual' | 'auditory' | 'kinesthetic' }))}
                     className={`p-4 rounded-lg border text-left transition-all duration-200 ${
                       editForm.learningStyle === style.id
                         ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-600/20 dark:to-purple-600/20 border-blue-500 dark:border-purple-500'
