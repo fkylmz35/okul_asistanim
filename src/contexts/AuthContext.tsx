@@ -109,9 +109,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
 
         setUser(userData);
+      } else {
+        throw new Error('Profil bulunamadı');
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      // Re-throw the error so calling functions can handle it properly
+      throw error;
     }
   };
 
