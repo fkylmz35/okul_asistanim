@@ -1,57 +1,23 @@
 import type { DocumentGenerationRequest, GeneratedDocument, ClaudeAPIResponse } from '../types/ai';
 
-const CLAUDE_MODEL = 'claude-3-5-sonnet-20241022'; // En güncel Claude modeli
+// Claude 3.5 Haiku - Hızlı ve uygun maliyetli model
+const CLAUDE_MODEL = 'claude-3-5-haiku-20241022';
 
 // Determine API endpoint based on environment
 const getApiEndpoint = (): string => {
-  // Production: Use Vercel Edge Function (secure)
-  if (import.meta.env.PROD) {
-    return '/api/claude';
-  }
-
-  // Development: Check if we have direct API key (only for testing)
-  const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-  if (apiKey && apiKey !== 'your_claude_api_key_here' && apiKey !== 'your_claude_api_key') {
-    // Use direct API (will cause CORS error, but useful for testing)
-    return 'https://api.anthropic.com/v1/messages';
-  }
-
-  // Default: Use local proxy endpoint
+  // Always use proxy endpoint for security
+  // Client-side API key usage is insecure and causes CORS errors
   return '/api/claude';
-};
-
-// Get API key (only for direct API calls in development)
-const getApiKey = (): string | null => {
-  try {
-    const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-    if (!apiKey || apiKey === 'your_claude_api_key_here' || apiKey === 'your_claude_api_key') {
-      return null;
-    }
-    return apiKey;
-  } catch (error) {
-    console.warn('Error getting Claude API key:', error);
-    return null;
-  }
 };
 
 // Check if Claude API is configured
 export const isClaudeConfigured = (): boolean => {
-  // In production, check if proxy endpoint is available
-  if (import.meta.env.PROD) {
-    return true; // Assume proxy is configured in production
-  }
-
-  // In development, check for API key
-  try {
-    const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-    return !!(apiKey && apiKey !== 'your_claude_api_key_here' && apiKey !== 'your_claude_api_key');
-  } catch (error) {
-    console.warn('Error checking Claude API configuration:', error);
-    return false;
-  }
+  // Always return true - proxy endpoint handles the API key server-side
+  // If CLAUDE_API_KEY is not set in Vercel, the proxy will return an error
+  return true;
 };
 
-// Call Claude API (via proxy or direct)
+// Call Claude API via proxy endpoint
 const callClaudeAPI = async (requestBody: {
   model: string;
   max_tokens: number;
@@ -60,25 +26,12 @@ const callClaudeAPI = async (requestBody: {
   messages: Array<{ role: string; content: string }>;
 }): Promise<ClaudeAPIResponse> => {
   const endpoint = getApiEndpoint();
-  const isDirect = endpoint.includes('anthropic.com');
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  // Add API key only for direct calls
-  if (isDirect) {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      throw new Error('Claude API key bulunamadı. Lütfen .env dosyasını kontrol edin.');
-    }
-    headers['x-api-key'] = apiKey;
-    headers['anthropic-version'] = '2023-06-01';
-  }
 
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(requestBody)
   });
 

@@ -6,7 +6,9 @@
       "Bash(npm install @supabase/supabase-js)",
       "Bash(npm install pptxgenjs)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git log:*)",
+      "Bash(npm audit:*)"
     ],
     "deny": [],
     "ask": []
