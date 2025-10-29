@@ -1,28 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Clock, CheckCircle, XCircle, Minus, Eye, ArrowLeft, RotateCcw } from 'lucide-react';
+import { Trophy, Clock, CheckCircle, XCircle, Minus, Eye, ArrowLeft, RotateCcw, Sparkles } from 'lucide-react';
 import Card from '../UI/Card';
 import Button from '../UI/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-
-interface Question {
-  id: number;
-  subject: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-  explanation: string;
-}
+import { generateQuestionExplanation, type ExamQuestion } from '../../services/claudeApi';
 
 interface ExamResultsProps {
   examType: string;
-  questions: Question[];
+  questions: ExamQuestion[];
   userAnswers: { [key: number]: number };
   timeSpent: number; // in seconds
   onBack: () => void;
 }
+
+// AI Explanation Component
+const AIExplanation: React.FC<{
+  questionIndex: number;
+  question: ExamQuestion;
+  userAnswer: number | undefined;
+  getExplanation: (index: number) => Promise<string>;
+  isLoading: boolean;
+  explanation: string;
+}> = ({ questionIndex, question, userAnswer, getExplanation, isLoading, explanation }) => {
+  const [localExplanation, setLocalExplanation] = useState(explanation);
+  const [hasGenerated, setHasGenerated] = useState(false);
+
+  useEffect(() => {
+    // Auto-generate AI explanation when component mounts
+    if (!hasGenerated && !isLoading) {
+      setHasGenerated(true);
+      getExplanation(questionIndex).then(aiExp => {
+        setLocalExplanation(aiExp);
+      });
+    }
+  }, [questionIndex, getExplanation, hasGenerated, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <span className="text-sm">Sofia açıklama hazırlıyor...</span>
+      </div>
+    );
+  }
+
+  return (
+    <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+      {localExplanation}
+    </p>
+  );
+};
 
 const ExamResults: React.FC<ExamResultsProps> = ({
   examType,
@@ -35,6 +65,8 @@ const ExamResults: React.FC<ExamResultsProps> = ({
   const { showSuccess, showError } = useToast();
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [resultsSaved, setResultsSaved] = useState(false);
+  const [aiExplanations, setAiExplanations] = useState<{ [key: number]: string }>({});
+  const [loadingExplanations, setLoadingExplanations] = useState<{ [key: number]: boolean }>({});
 
   const calculateResults = () => {
     let correct = 0;
@@ -122,6 +154,36 @@ const ExamResults: React.FC<ExamResultsProps> = ({
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Get AI explanation for a specific question
+  const getAIExplanation = async (questionIndex: number) => {
+    const question = questions[questionIndex];
+    const userAnswer = userAnswers[questionIndex];
+
+    // Check if already loaded
+    if (aiExplanations[questionIndex]) {
+      return aiExplanations[questionIndex];
+    }
+
+    // Check if already loading
+    if (loadingExplanations[questionIndex]) {
+      return question.explanation; // Return default while loading
+    }
+
+    // Start loading
+    setLoadingExplanations(prev => ({ ...prev, [questionIndex]: true }));
+
+    try {
+      const aiExplanation = await generateQuestionExplanation(question, userAnswer);
+      setAiExplanations(prev => ({ ...prev, [questionIndex]: aiExplanation }));
+      setLoadingExplanations(prev => ({ ...prev, [questionIndex]: false }));
+      return aiExplanation;
+    } catch (error) {
+      console.error('Error generating AI explanation:', error);
+      setLoadingExplanations(prev => ({ ...prev, [questionIndex]: false }));
+      return question.explanation; // Fallback to default
+    }
   };
 
   if (showAnswerKey) {
@@ -213,9 +275,22 @@ const ExamResults: React.FC<ExamResultsProps> = ({
                             </>
                           )}
                         </p>
-                        <p className="text-gray-700 dark:text-gray-300">
-                          <strong>Açıklama:</strong> {question.explanation}
-                        </p>
+
+                        {/* AI Explanation */}
+                        <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-start space-x-2 mb-2">
+                            <Sparkles className="w-4 h-4 text-blue-500 dark:text-purple-400 mt-1" />
+                            <strong className="text-blue-600 dark:text-purple-400">Sofia'nın Açıklaması:</strong>
+                          </div>
+                          <AIExplanation
+                            questionIndex={index}
+                            question={question}
+                            userAnswer={userAnswer}
+                            getExplanation={getAIExplanation}
+                            isLoading={loadingExplanations[index] || false}
+                            explanation={aiExplanations[index] || question.explanation}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

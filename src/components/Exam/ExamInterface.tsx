@@ -4,15 +4,8 @@ import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
 import Card from '../UI/Card';
 import Button from '../UI/Button';
 import ExamResults from './ExamResults';
-
-interface Question {
-  id: number;
-  subject: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-  explanation: string;
-}
+import { generateExamQuestions, type ExamQuestion } from '../../services/claudeApi';
+import { useToast } from '../../contexts/ToastContext';
 
 interface ExamInterfaceProps {
   examType: string;
@@ -29,42 +22,96 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({
   subjects,
   onBack
 }) => {
+  const { showError, showSuccess } = useToast();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<{ [key: number]: number }>({});
   const [timeLeft, setTimeLeft] = useState(timeLimit * 60); // Convert to seconds
   const [examFinished, setExamFinished] = useState(false);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<ExamQuestion[]>([]);
+  const [isGenerating, setIsGenerating] = useState(true);
 
-  // Generate mock questions
+  // Generate AI questions
   useEffect(() => {
-    const generateQuestions = () => {
-      const mockQuestions: Question[] = [];
-      let questionId = 1;
+    const generateAIQuestions = async () => {
+      setIsGenerating(true);
+      try {
+        const allQuestions: ExamQuestion[] = [];
+        let questionId = 1;
 
-      subjects.forEach(subject => {
-        for (let i = 0; i < subject.questions; i++) {
-          mockQuestions.push({
-            id: questionId,
-            subject: subject.name,
-            question: `${subject.name} konusunda ${questionId}. soru. Bu soru Sofia tarafından ${examType} formatında hazırlanmıştır. Aşağıdakilerden hangisi doğrudur?`,
-            options: [
-              `${subject.name} ile ilgili A seçeneği`,
-              `${subject.name} ile ilgili B seçeneği`,
-              `${subject.name} ile ilgili C seçeneği`,
-              `${subject.name} ile ilgili D seçeneği`
-            ],
-            correctAnswer: Math.floor(Math.random() * 4),
-            explanation: `Bu sorunun cevabı Sofia'nın ${subject.name} analizi sonucunda belirlenmiştir. Detaylı açıklama burada yer alır.`
-          });
-          questionId++;
+        // Generate questions for each subject using Claude AI
+        for (const subject of subjects) {
+          try {
+            const subjectQuestions = await generateExamQuestions(
+              examType,
+              subject.name,
+              subject.questions
+            );
+
+            // Assign sequential IDs
+            const questionsWithIds = subjectQuestions.map(q => ({
+              ...q,
+              id: questionId++
+            }));
+
+            allQuestions.push(...questionsWithIds);
+          } catch (error) {
+            console.error(`Error generating ${subject.name} questions:`, error);
+
+            // Fallback: Generate mock questions if AI fails for this subject
+            for (let i = 0; i < subject.questions; i++) {
+              allQuestions.push({
+                id: questionId++,
+                subject: subject.name,
+                question: `${subject.name} konusunda soru ${i + 1}. Bu soru Sofia tarafından ${examType} formatında hazırlanmıştır. Aşağıdakilerden hangisi doğrudur?`,
+                options: [
+                  `${subject.name} ile ilgili A seçeneği`,
+                  `${subject.name} ile ilgili B seçeneği`,
+                  `${subject.name} ile ilgili C seçeneği`,
+                  `${subject.name} ile ilgili D seçeneği`
+                ],
+                correctAnswer: Math.floor(Math.random() * 4),
+                explanation: `Bu sorunun cevabı Sofia'nın ${subject.name} analizi sonucunda belirlenmiştir. Detaylı açıklama burada yer alır.`
+              });
+            }
+          }
         }
-      });
 
-      setQuestions(mockQuestions);
+        setQuestions(allQuestions);
+        showSuccess('Sınav soruları Sofia tarafından hazırlandı! Başarılar dilerim 🎯');
+      } catch (error) {
+        console.error('Error generating exam questions:', error);
+        showError('Sorular hazırlanırken bir hata oluştu. Demo sorular kullanılıyor.');
+
+        // Fallback: Generate all mock questions
+        const mockQuestions: ExamQuestion[] = [];
+        let questionId = 1;
+
+        subjects.forEach(subject => {
+          for (let i = 0; i < subject.questions; i++) {
+            mockQuestions.push({
+              id: questionId++,
+              subject: subject.name,
+              question: `${subject.name} konusunda soru ${i + 1}. Bu soru Sofia tarafından ${examType} formatında hazırlanmıştır. Aşağıdakilerden hangisi doğrudur?`,
+              options: [
+                `${subject.name} ile ilgili A seçeneği`,
+                `${subject.name} ile ilgili B seçeneği`,
+                `${subject.name} ile ilgili C seçeneği`,
+                `${subject.name} ile ilgili D seçeneği`
+              ],
+              correctAnswer: Math.floor(Math.random() * 4),
+              explanation: `Bu sorunun cevabı Sofia'nın ${subject.name} analizi sonucunda belirlenmiştir. Detaylı açıklama burada yer alır.`
+            });
+          }
+        });
+
+        setQuestions(mockQuestions);
+      } finally {
+        setIsGenerating(false);
+      }
     };
 
-    generateQuestions();
-  }, [subjects, examType]);
+    generateAIQuestions();
+  }, [subjects, examType, showError, showSuccess]);
 
   // Timer
   useEffect(() => {
@@ -116,12 +163,13 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({
     );
   }
 
-  if (questions.length === 0) {
+  if (isGenerating || questions.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Sofia sorularını hazırlıyor...</p>
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Sofia sınav sorularını hazırlıyor...</p>
+          <p className="text-gray-600 dark:text-gray-400">AI ile gerçek {examType} soruları oluşturuluyor 🤖</p>
         </div>
       </div>
     );
