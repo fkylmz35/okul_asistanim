@@ -20,8 +20,13 @@ import FloatingLabelInput from '../components/UI/FloatingLabelInput';
 import { documentTemplates } from '../data/documentTemplates';
 import { DocumentRequest } from '../types';
 import { generateDocumentContent, isClaudeConfigured } from '../services/claudeApi';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const DocumentGeneratorPage: React.FC = () => {
+  const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [documentRequest, setDocumentRequest] = useState<DocumentRequest>({
     type: 'pdf',
@@ -37,6 +42,38 @@ const DocumentGeneratorPage: React.FC = () => {
   const [generatedContent, setGeneratedContent] = useState('');
   const [error, setError] = useState<string | null>(null);
   const claudeConfigured = isClaudeConfigured();
+
+  // Save document to database
+  const saveToDatabase = async (type: 'pdf' | 'docx' | 'pptx') => {
+    if (!user) return;
+
+    try {
+      // Development mode - skip saving
+      if (!isSupabaseConfigured) {
+        console.log('Development mode - document not saved to database');
+        return;
+      }
+
+      // Production mode - save to Supabase
+      const { error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          user_id: user.id,
+          title: documentRequest.topic,
+          type: type,
+          subject: documentRequest.subject,
+          grade_level: documentRequest.gradeLevel,
+          content: generatedContent
+        });
+
+      if (dbError) throw dbError;
+
+      console.log('Document saved to database successfully');
+    } catch (err) {
+      console.error('Error saving document to database:', err);
+      // Don't block the download if database save fails
+    }
+  };
 
   const subjects = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'İngilizce', 'Tarih', 'Coğrafya'];
   const gradeOptions = ['5. Sınıf', '6. Sınıf', '7. Sınıf', '8. Sınıf', '9. Sınıf', '10. Sınıf', '11. Sınıf', '12. Sınıf'];
@@ -151,7 +188,10 @@ Okul Asistanım - Sofia ile Öğren
     }
   };
 
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
+    // Save to database first
+    await saveToDatabase('pdf');
+
     // Markdown'ı HTML'e çevir (basit formatlar için)
     let htmlContent = generatedContent
       .replace(/### (.*)/g, '<h3 style="font-size: 14px; font-weight: bold; margin: 12px 0 8px 0; color: #1a1a1a;">$1</h3>')
@@ -193,9 +233,15 @@ Okul Asistanım - Sofia ile Öğren
     const element = document.createElement('div');
     element.innerHTML = html;
     html2pdf().set(opt).from(element).save();
+
+    // Show success message
+    showSuccess('PDF başarıyla indirildi ve kaydedildi!');
   };
 
   const downloadWord = async () => {
+    // Save to database first
+    await saveToDatabase('docx');
+
     const doc = new Document({
       sections: [{
         properties: {},
@@ -228,9 +274,15 @@ Okul Asistanım - Sofia ile Öğren
     a.download = `${documentRequest.topic}-${documentRequest.subject}.docx`;
     a.click();
     URL.revokeObjectURL(url);
+
+    // Show success message
+    showSuccess('Word belgesi başarıyla indirildi ve kaydedildi!');
   };
 
   const downloadPowerPoint = async () => {
+    // Save to database first
+    await saveToDatabase('pptx');
+
     const pres = new pptxgen();
     const { topic, subject, gradeLevel } = documentRequest;
 
@@ -444,6 +496,9 @@ Okul Asistanım - Sofia ile Öğren
 
     // Save the presentation
     await pres.writeFile({ fileName: `${documentRequest.topic}-${documentRequest.subject}.pptx` });
+
+    // Show success message
+    showSuccess('PowerPoint sunumu başarıyla indirildi ve kaydedildi!');
   };
 
   return (

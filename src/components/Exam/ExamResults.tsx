@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Clock, CheckCircle, XCircle, Minus, Eye, ArrowLeft, RotateCcw } from 'lucide-react';
 import Card from '../UI/Card';
 import Button from '../UI/Button';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 interface Question {
   id: number;
@@ -28,7 +31,10 @@ const ExamResults: React.FC<ExamResultsProps> = ({
   timeSpent,
   onBack
 }) => {
+  const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [showAnswerKey, setShowAnswerKey] = useState(false);
+  const [resultsSaved, setResultsSaved] = useState(false);
 
   const calculateResults = () => {
     let correct = 0;
@@ -70,6 +76,46 @@ const ExamResults: React.FC<ExamResultsProps> = ({
   const { correct, wrong, empty } = calculateResults();
   const subjectResults = getSubjectResults();
   const percentage = Math.round((correct / questions.length) * 100);
+
+  // Save exam results to database on mount
+  useEffect(() => {
+    const saveResults = async () => {
+      if (!user || resultsSaved) return;
+
+      try {
+        // Development mode - skip saving
+        if (!isSupabaseConfigured) {
+          console.log('Development mode - exam results not saved');
+          setResultsSaved(true);
+          return;
+        }
+
+        // Production mode - save to Supabase
+        const { error } = await supabase
+          .from('exam_results')
+          .insert({
+            user_id: user.id,
+            exam_type: examType,
+            total_questions: questions.length,
+            correct_answers: correct,
+            wrong_answers: wrong,
+            empty_answers: empty,
+            time_spent: timeSpent,
+            subject_results: subjectResults
+          });
+
+        if (error) throw error;
+
+        setResultsSaved(true);
+        console.log('Exam results saved successfully');
+      } catch (error) {
+        console.error('Error saving exam results:', error);
+        // Don't show error toast to user - this is a background operation
+      }
+    };
+
+    saveResults();
+  }, [user, resultsSaved, examType, questions.length, correct, wrong, empty, timeSpent, subjectResults]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);

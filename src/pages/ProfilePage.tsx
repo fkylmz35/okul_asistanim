@@ -41,6 +41,8 @@ import Button from '../components/UI/Button';
 import FloatingLabelInput from '../components/UI/FloatingLabelInput';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useToast } from '../contexts/ToastContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import PricingTable from '../components/UI/PricingTable';
 
 ChartJS.register(
@@ -56,7 +58,9 @@ ChartJS.register(
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const { showSuccess, showError } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const [editForm, setEditForm] = useState({
     name: user?.name || '',
@@ -69,9 +73,51 @@ const ProfilePage: React.FC = () => {
     personalNotes: user?.personalNotes || ''
   });
 
-  const handleSave = () => {
-    // Here you would typically update the user profile
-    setIsEditing(false);
+  const handleSave = async () => {
+    if (!user) return;
+
+    setIsSaving(true);
+    try {
+      // Development mode - just update local state
+      if (!isSupabaseConfigured) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+        showSuccess('Profil başarıyla güncellendi! (Development Mode)');
+        setIsEditing(false);
+        setIsSaving(false);
+        return;
+      }
+
+      // Production mode - update Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: editForm.name,
+          surname: editForm.surname,
+          email: editForm.email,
+          sinif: editForm.sinif,
+          school: editForm.school,
+          age: editForm.age,
+          learning_style: editForm.learningStyle,
+          personal_notes: editForm.personalNotes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      showSuccess('Profil bilgileriniz başarıyla güncellendi!');
+      setIsEditing(false);
+
+      // Reload page to reflect changes
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      showError('Profil güncellenirken bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -244,11 +290,11 @@ const ProfilePage: React.FC = () => {
                     </Button>
                   ) : (
                     <div className="flex space-x-2">
-                      <Button onClick={handleSave} className="px-4">
+                      <Button onClick={handleSave} className="px-4" disabled={isSaving}>
                         <Save className="w-4 h-4 mr-2" />
-                        Kaydet
+                        {isSaving ? 'Kaydediliyor...' : 'Kaydet'}
                       </Button>
-                      <Button variant="outline" onClick={handleCancel} className="px-4">
+                      <Button variant="outline" onClick={handleCancel} className="px-4" disabled={isSaving}>
                         <X className="w-4 h-4 mr-2" />
                         İptal
                       </Button>

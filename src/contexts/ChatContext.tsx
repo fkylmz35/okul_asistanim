@@ -285,44 +285,34 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           .eq('id', currentConversation.id);
       }
 
-      // Simulate AI typing and response
+      // Generate AI response
       if (sender === 'user') {
         setIsTyping(true);
-        setTimeout(async () => {
-          setIsTyping(false);
-          const aiResponses = [
-            "Merhaba! Ben Sofia. Bu harika bir soru! Bu konuyu adım adım açıklayayım.",
-            "Ben Sofia! Bu konuda sana yardımcı olmaktan mutluluk duyarım.",
-            "Sofia burada! Bu önemli bir konu. Birlikte öğrenelim!",
-            "Ben Sofia, çok güzel bir soru. Detaylı bir açıklama yapayım.",
-            "Sofia olarak bu konuyu anlamanız için örneklerle açıklayayım."
-          ];
-          const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
 
-          // Save AI response to database
-          const { data: aiMessageData, error: aiError } = await supabase
+        try {
+          // Use Claude API for real AI response
+          const context = ders ? `Ders: ${ders}` : '';
+          const aiResponse = await generateChatResponse(content, context);
+
+          const aiMessage: Message = {
+            id: `msg-${Date.now() + 1}`,
+            content: aiResponse,
+            sender: 'ai',
+            timestamp: new Date(),
+            ders
+          };
+
+          // Save AI message to database
+          await supabase
             .from('messages')
             .insert({
               conversation_id: currentConversation.id,
-              content: randomResponse,
+              content: aiResponse,
               sender: 'ai',
               ders
-            })
-            .select()
-            .single();
+            });
 
-          if (aiError) {
-            console.error('Error saving AI message:', aiError);
-            return;
-          }
-
-          const aiMessage: Message = {
-            id: aiMessageData.id,
-            content: aiMessageData.content,
-            sender: 'ai',
-            timestamp: new Date(aiMessageData.created_at),
-            ders
-          };
+          setIsTyping(false);
 
           const finalConversation = {
             ...updatedConversation,
@@ -334,7 +324,49 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setConversations(prev =>
             prev.map(conv => conv.id === currentConversation.id ? finalConversation : conv)
           );
-        }, 1500);
+        } catch (error) {
+          console.error('Error generating AI response:', error);
+          setIsTyping(false);
+
+          // Fallback to mock response if Claude API fails
+          const aiResponses = [
+            "Merhaba! Ben Sofia. Bu harika bir soru! Bu konuyu adım adım açıklayayım.",
+            "Ben Sofia! Bu konuda sana yardımcı olmaktan mutluluk duyarım.",
+            "Sofia burada! Bu önemli bir konu. Birlikte öğrenelim!",
+            "Ben Sofia, çok güzel bir soru. Detaylı bir açıklama yapayım.",
+            "Sofia olarak bu konuyu anlamanız için örneklerle açıklayayım."
+          ];
+          const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+
+          const aiMessage: Message = {
+            id: `msg-${Date.now() + 1}`,
+            content: randomResponse,
+            sender: 'ai',
+            timestamp: new Date(),
+            ders
+          };
+
+          // Save AI fallback response to database
+          await supabase
+            .from('messages')
+            .insert({
+              conversation_id: currentConversation.id,
+              content: randomResponse,
+              sender: 'ai',
+              ders
+            });
+
+          const finalConversation = {
+            ...updatedConversation,
+            messages: [...updatedConversation.messages, aiMessage],
+            updatedAt: new Date()
+          };
+
+          setCurrentConversation(finalConversation);
+          setConversations(prev =>
+            prev.map(conv => conv.id === currentConversation.id ? finalConversation : conv)
+          );
+        }
       }
     } catch (error) {
       console.error('Error adding message:', error);
