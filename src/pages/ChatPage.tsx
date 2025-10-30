@@ -1,16 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Plus, Bot, User as UserIcon, Loader2 } from 'lucide-react';
+import { Send, Plus, Bot, User as UserIcon, Loader2, BookOpen, Library } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import { useChat } from '../contexts/ChatContext';
-import { subjects } from '../data/subjects';
+import { useAuth } from '../contexts/AuthContext';
+import { getSubjectColor } from '../constants/subjects';
 
 const ChatPage: React.FC = () => {
   const [message, setMessage] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const { currentConversation, addMessage, createConversation, isTyping } = useChat();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Mock user subjects (production'da Supabase'den gelecek)
+  const [userSubjects] = useState([
+    { id: '1', name: 'Matematik' },
+    { id: '2', name: 'Fen Bilimleri' },
+    { id: '3', name: 'Türkçe' }
+  ]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,35 +69,55 @@ const ChatPage: React.FC = () => {
         >
           <h2 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-2 lg:mb-4">Ders Seçin</h2>
           <p className="text-gray-600 dark:text-gray-400 text-xs lg:text-sm mb-2 lg:mb-4">Sofia hangi konuda sana yardım etsin?</p>
-          
-          <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 lg:gap-3">
-            {subjects.map((subject, index) => (
-              <motion.button
-                key={subject.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setSelectedSubject(subject.name)}
-                className={`w-full p-4 rounded-xl border transition-all duration-200 text-left ${
-                  selectedSubject === subject.name
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 border-blue-500 text-white shadow-lg'
-                    : 'bg-white/80 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg bg-gradient-to-r ${subject.color}`}>
-                    <div className="w-4 h-4 bg-white rounded-sm" />
+
+          {userSubjects.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 text-center"
+            >
+              <Library className="w-12 h-12 text-blue-500 dark:text-blue-400 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Henüz ders eklemediniz
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                Sofia ile sohbet etmek için önce derslerinizi eklemelisiniz
+              </p>
+              <Button onClick={() => navigate('/subjects')} className="w-full">
+                <Plus className="w-4 h-4 mr-2" />
+                Ders Ekle
+              </Button>
+            </motion.div>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 lg:gap-3">
+              {userSubjects.map((subject, index) => (
+                <motion.button
+                  key={subject.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSelectedSubject(subject.name)}
+                  className={`w-full p-4 rounded-xl border transition-all duration-200 text-left ${
+                    selectedSubject === subject.name
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 border-blue-500 text-white shadow-lg'
+                      : 'bg-white/80 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className={`p-2 rounded-lg ${getSubjectColor(subject.name)}`}>
+                      <BookOpen className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm lg:text-base">{subject.name}</h3>
+                      <p className="text-xs opacity-75 truncate">Sofia ile öğren</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm lg:text-base">{subject.name}</h3>
-                    <p className="text-xs opacity-75 truncate">{subject.description}</p>
-                  </div>
-                </div>
-              </motion.button>
-            ))}
-          </div>
+                </motion.button>
+              ))}
+            </div>
+          )}
 
           {selectedSubject && (
             <motion.div

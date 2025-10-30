@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import {
   FileText,
   Download,
@@ -27,13 +28,25 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 const DocumentGeneratorPage: React.FC = () => {
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
+  const location = useLocation();
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+
+  // Mock user subjects (production'da Supabase'den gelecek)
+  const [userSubjects] = useState([
+    { id: '1', name: 'Matematik' },
+    { id: '2', name: 'Fen Bilimleri' },
+    { id: '3', name: 'Türkçe' }
+  ]);
+
+  // Get selected subject from navigation state (if coming from SubjectDetailPage)
+  const preSelectedSubject = location.state?.selectedSubject || '';
+
   const [documentRequest, setDocumentRequest] = useState<DocumentRequest>({
     type: 'pdf',
     topic: '',
     content: '',
-    subject: '',
-    gradeLevel: '',
+    subject: preSelectedSubject,
+    gradeLevel: user?.sinif || '',
     length: 'medium',
     template: ''
   });
@@ -75,7 +88,6 @@ const DocumentGeneratorPage: React.FC = () => {
     }
   };
 
-  const subjects = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'İngilizce', 'Tarih', 'Coğrafya'];
   const gradeOptions = ['5. Sınıf', '6. Sınıf', '7. Sınıf', '8. Sınıf', '9. Sınıf', '10. Sınıf', '11. Sınıf', '12. Sınıf'];
 
   const iconMap: { [key: string]: React.ComponentType<React.SVGProps<SVGSVGElement>> } = {
@@ -689,9 +701,9 @@ Okul Asistanım - Sofia ile Öğren
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:border-blue-500 dark:focus:border-purple-500 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-purple-500/20 transition-all duration-200 text-gray-900 dark:text-white"
                   >
                     <option value="">Ders Seçin</option>
-                    {subjects.map((subject) => (
-                      <option key={subject} value={subject} className="bg-white dark:bg-gray-800">
-                        {subject}
+                    {userSubjects.map((subject) => (
+                      <option key={subject.id} value={subject.name} className="bg-white dark:bg-gray-800">
+                        {subject.name}
                       </option>
                     ))}
                   </select>
