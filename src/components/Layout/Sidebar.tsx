@@ -10,7 +10,8 @@ import {
   GraduationCap,
   Menu,
   X,
-  BookOpen
+  BookOpen,
+  Library
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -28,6 +29,7 @@ const Sidebar: React.FC = () => {
     { to: '/dashboard', icon: Home, label: 'Ana Sayfa' },
     { to: '/chat', icon: MessageCircle, label: 'AI Sohbet' },
     { to: '/documents/generator', icon: FileText, label: 'Döküman Oluştur' },
+    { to: '/subjects', icon: Library, label: 'Dersler' },
     { to: '/documents', icon: BookOpen, label: 'Geçmiş' },
     { to: '/profile', icon: User, label: 'Profil' }
   ];

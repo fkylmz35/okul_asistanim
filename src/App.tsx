@@ -15,6 +15,8 @@ import ChatPage from './pages/ChatPage';
 import DocumentsPage from './pages/DocumentsPage';
 import DocumentGeneratorPage from './pages/DocumentGeneratorPage';
 import ProfilePage from './pages/ProfilePage';
+import SubjectsPage from './pages/SubjectsPage';
+import SubjectDetailPage from './pages/SubjectDetailPage';
 
 function App() {
   return (
@@ -53,6 +55,20 @@ function App() {
                 <ProtectedRoute>
                   <MainLayout>
                     <DocumentGeneratorPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/subjects" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <SubjectsPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/subjects/:id" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <SubjectDetailPage />
                   </MainLayout>
                 </ProtectedRoute>
               } />
