@@ -153,12 +153,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Only set up Supabase auth listener in production
     if (isSupabaseConfigured) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          await fetchUserProfile(session.user);
-        } else if (event === 'SIGNED_OUT') {
+        try {
+          if (event === 'SIGNED_IN' && session?.user) {
+            await fetchUserProfile(session.user);
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+          }
+        } catch (error) {
+          console.error('Error in auth state change:', error);
           setUser(null);
+        } finally {
+          setIsLoading(false);
         }
-        setIsLoading(false);
       });
 
       return () => {
