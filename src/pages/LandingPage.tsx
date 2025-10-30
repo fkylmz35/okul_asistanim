@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  GraduationCap, 
-  MessageCircle, 
-  BookOpen, 
-  User, 
-  Target,
+import {
+  GraduationCap,
+  MessageCircle,
+  BookOpen,
+  User,
+  TrendingUp,
   Moon,
   Sun,
   ArrowRight,
@@ -49,7 +49,7 @@ const LandingPage: React.FC = () => {
       color: 'from-green-500 to-teal-500'
     },
     {
-      icon: Target,
+      icon: TrendingUp,
       title: 'Öğretmen Desteği',
       description: 'Öğretmenin gibi sabırlı ve anlayışlı bir asistan her zaman yanında',
       color: 'from-orange-500 to-red-500'
@@ -321,7 +321,7 @@ const LandingPage: React.FC = () => {
                   </div>
                   
                   <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Target className="w-8 h-8 text-white" />
+                    <TrendingUp className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-xl font-bold mb-3 text-black dark:text-white">
                     LGS'ye Hazırlan

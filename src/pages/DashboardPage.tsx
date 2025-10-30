@@ -21,7 +21,7 @@ const DashboardPage: React.FC = () => {
   };
 
   const stats = [
-    { label: 'Toplam Seans', value: '24', icon: Target, color: 'text-purple-400' },
+    { label: 'Toplam Seans', value: '24', icon: Brain, color: 'text-purple-400' },
     { label: 'Öğrenme Saati', value: '48', icon: Clock, color: 'text-blue-400' },
     { label: 'Tamamlanan', value: '12', icon: Award, color: 'text-green-400' },
     { label: 'İlerleme', value: '%89', icon: TrendingUp, color: 'text-orange-400' }

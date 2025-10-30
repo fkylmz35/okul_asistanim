@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Check, Star, Target, GraduationCap, Crown } from 'lucide-react';
+import { Check, Star, TrendingUp, GraduationCap, Crown } from 'lucide-react';
 import Card from './Card';
 import Button from './Button';
 
@@ -111,7 +111,7 @@ const PricingTable: React.FC<PricingTableProps> = ({
       case 'star':
         return <Star className="w-4 h-4 text-yellow-500" />;
       case 'target':
-        return <Target className="w-4 h-4 text-purple-500" />;
+        return <TrendingUp className="w-4 h-4 text-purple-500" />;
       case 'graduation':
         return <GraduationCap className="w-4 h-4 text-blue-500" />;
       default:

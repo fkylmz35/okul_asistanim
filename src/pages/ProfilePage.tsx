@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, 
-  Mail, 
-  Calendar, 
-  BookOpen, 
-  Edit2, 
-  Save, 
-  X, 
-  GraduationCap, 
-  Trophy, 
-  Clock, 
-  Target,
+import {
+  User,
+  Mail,
+  Calendar,
+  BookOpen,
+  Edit2,
+  Save,
+  X,
+  GraduationCap,
+  Trophy,
+  Clock,
+  TrendingUp,
   Camera,
   School,
   Brain,
@@ -136,7 +136,7 @@ const ProfilePage: React.FC = () => {
 
   const achievements = [
     { title: 'Sofia ile İlk Tanışma', description: 'İlk AI sohbetinizi tamamladınız', earned: true, icon: Trophy },
-    { title: 'Matematik Ustası', description: '10 matematik sorusu çözdünüz', earned: true, icon: Target },
+    { title: 'Matematik Ustası', description: '10 matematik sorusu çözdünüz', earned: true, icon: TrendingUp },
     { title: 'Sürekli Öğrenci', description: '7 gün üst üste Sofia ile çalıştınız', earned: false, icon: Calendar },
     { title: 'Çok Yönlü Öğrenci', description: 'Tüm derslerde Sofia ile sohbet ettiniz', earned: false, icon: Star }
   ];
@@ -204,7 +204,7 @@ const ProfilePage: React.FC = () => {
 
   const tabs = [
     { id: 'personal', name: 'Kişisel Bilgiler', icon: User },
-    { id: 'statistics', name: 'Öğrenme İstatistikleri', icon: Target },
+    { id: 'statistics', name: 'Öğrenme İstatistikleri', icon: TrendingUp },
     { id: 'preferences', name: 'Öğrenme Tercihleri', icon: Brain },
     { id: 'subscription', name: 'Abonelik Yönetimi', icon: CreditCard },
     { id: 'settings', name: 'Ayarlar', icon: Settings }
@@ -410,7 +410,7 @@ const ProfilePage: React.FC = () => {
                 <p className="text-gray-600 dark:text-gray-400 text-sm">Sofia ile Çalışma Saati</p>
               </Card>
               <Card className="p-6 text-center">
-                <Target className="w-8 h-8 text-green-500 dark:text-green-400 mx-auto mb-3" />
+                <TrendingUp className="w-8 h-8 text-green-500 dark:text-green-400 mx-auto mb-3" />
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">7</p>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">Günlük Çalışma Serisi</p>
               </Card>
