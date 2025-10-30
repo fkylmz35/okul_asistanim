@@ -55,7 +55,7 @@ ChartJS.register(
 );
 
 const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const { showSuccess, showError } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -119,10 +119,8 @@ const ProfilePage: React.FC = () => {
       showSuccess('Profil bilgileriniz başarıyla güncellendi!');
       setIsEditing(false);
 
-      // Reload page to reflect changes
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Refresh user data to reflect changes
+      await refreshUser();
     } catch (error) {
       console.error('Error saving profile:', error);
       showError('Profil güncellenirken bir hata oluştu. Lütfen tekrar deneyin.');
@@ -200,10 +198,8 @@ const ProfilePage: React.FC = () => {
 
       showSuccess('Profil fotoğrafınız başarıyla güncellendi!');
 
-      // Reload page to reflect changes
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Refresh user data to reflect changes
+      await refreshUser();
     } catch (error: any) {
       console.error('Avatar upload error:', error);
 

@@ -35,6 +35,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -270,8 +271,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const refreshUser = async () => {
+    try {
+      // Development mode - just reload mock user
+      if (!isSupabaseConfigured) {
+        setUser({ ...mockUser });
+        return;
+      }
+
+      // Production mode - fetch fresh user data from Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        await fetchUserProfile(session.user);
+      }
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, refreshUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
