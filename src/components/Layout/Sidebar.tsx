@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Home, 
-  MessageCircle, 
-  FileText, 
-  User, 
+import {
+  Home,
+  MessageCircle,
+  FileText,
+  User,
   LogOut,
   GraduationCap,
   Menu,
   X,
-  BookOpen,
-  Target,
-  Book
+  BookOpen
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -31,8 +29,6 @@ const Sidebar: React.FC = () => {
     { to: '/chat', icon: MessageCircle, label: 'AI Sohbet' },
     { to: '/documents/generator', icon: FileText, label: 'Döküman Oluştur' },
     { to: '/documents', icon: BookOpen, label: 'Geçmiş' },
-    { to: '/lgs', icon: Target, label: "LGS'ye Hazırlan", special: 'lgs' },
-    { to: '/yks', icon: Book, label: "YKS'ye Hazırlan", special: 'yks' },
     { to: '/profile', icon: User, label: 'Profil' }
   ];
 
@@ -76,15 +72,6 @@ const Sidebar: React.FC = () => {
                 onClick={() => setIsMobileOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 ${
-                    item.special === 'lgs'
-                      ? isActive
-                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                        : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-md'
-                      : item.special === 'yks'
-                      ? isActive
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                        : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-md'
-                      :
                     isActive
                       ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg'
                       : 'text-gray-300 hover:bg-gray-800 hover:text-white'

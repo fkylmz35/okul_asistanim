@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calculator, FlaskRound as Flask, BookOpen, Clock, Globe, Map, TrendingUp, Award, Target, Brain, Sparkles, GraduationCap } from 'lucide-react';
+import { Calculator, FlaskRound as Flask, BookOpen, Clock, Globe, Map, TrendingUp, Award, Brain, Sparkles, GraduationCap } from 'lucide-react';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import { useNavigate } from 'react-router-dom';
@@ -128,32 +128,6 @@ const DashboardPage: React.FC = () => {
                 </div>
               </div>
               <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">Sofia ile Oluştur</Button>
-            </Card>
-
-            <Card className="p-6" onClick={() => navigate('/lgs')}>
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                  <Target className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white">LGS'ye Hazırlan</h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-xs lg:text-sm">Sofia ile deneme sınavı</p>
-                </div>
-              </div>
-              <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">LGS Denemesi Çöz</Button>
-            </Card>
-
-            <Card className="p-6" onClick={() => navigate('/yks')}>
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white">YKS'ye Hazırlan</h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-xs lg:text-sm">Sofia ile TYT/AYT denemesi</p>
-                </div>
-              </div>
-              <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">YKS Denemesi Çöz</Button>
             </Card>
           </div>
 

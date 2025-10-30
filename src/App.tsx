@@ -15,8 +15,6 @@ import ChatPage from './pages/ChatPage';
 import DocumentsPage from './pages/DocumentsPage';
 import DocumentGeneratorPage from './pages/DocumentGeneratorPage';
 import ProfilePage from './pages/ProfilePage';
-import LGSPage from './pages/LGSPage';
-import YKSPage from './pages/YKSPage';
 
 function App() {
   return (
@@ -62,20 +60,6 @@ function App() {
                 <ProtectedRoute>
                   <MainLayout>
                     <ProfilePage />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/lgs" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <LGSPage />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/yks" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <YKSPage />
                   </MainLayout>
                 </ProtectedRoute>
               } />
