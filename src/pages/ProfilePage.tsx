@@ -204,9 +204,15 @@ const ProfilePage: React.FC = () => {
       setTimeout(() => {
         window.location.reload();
       }, 1000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Avatar upload error:', error);
-      showError('Profil fotoğrafı yüklenirken bir hata oluştu');
+
+      // Check if it's a bucket not found error
+      if (error?.message?.includes('Bucket not found')) {
+        showError('Supabase Storage yapılandırması eksik. Lütfen "avatars" bucket\'ını oluşturun.');
+      } else {
+        showError('Profil fotoğrafı yüklenirken bir hata oluştu');
+      }
     } finally {
       setUploadingAvatar(false);
     }
@@ -826,15 +832,13 @@ const ProfilePage: React.FC = () => {
                     type="password"
                     label="Yeni Şifre"
                     value={passwordForm.newPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                    placeholder="En az 6 karakter"
+                    onChange={(value) => setPasswordForm({ ...passwordForm, newPassword: value })}
                   />
                   <FloatingLabelInput
                     type="password"
                     label="Yeni Şifre (Tekrar)"
                     value={passwordForm.confirmPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                    placeholder="Şifrenizi tekrar girin"
+                    onChange={(value) => setPasswordForm({ ...passwordForm, confirmPassword: value })}
                   />
                 </div>
 
