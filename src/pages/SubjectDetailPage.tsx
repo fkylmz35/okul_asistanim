@@ -176,6 +176,14 @@ const SubjectDetailPage: React.FC = () => {
   const handleUploadFile = async () => {
     if (!selectedFile || !user || !id) return;
 
+    // Debug log
+    console.log('Upload başlıyor:', {
+      fileName: selectedFile.name,
+      userId: user.id,
+      subjectId: id,
+      subjectName: subject.name
+    });
+
     setUploadingFile(true);
     setUploadProgress(0);
 
@@ -233,7 +241,9 @@ const SubjectDetailPage: React.FC = () => {
           subject_id: id,
           title: selectedFile.name,
           type: 'pdf', // Varsayılan type değeri
-          subject: subject.name, // Ders adı
+          subject: subject.name || 'Genel', // Ders adı (fallback: 'Genel')
+          grade_level: user?.sinif || '', // Sınıf seviyesi
+          content: '', // Boş content
           document_type: 'Yüklenen Dosya',
           file_url: publicUrl,
           file_type: selectedFile.type,
