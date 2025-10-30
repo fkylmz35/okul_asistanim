@@ -233,6 +233,7 @@ const SubjectDetailPage: React.FC = () => {
           subject_id: id,
           title: selectedFile.name,
           type: 'pdf', // Varsayılan type değeri
+          subject: subject.name, // Ders adı
           document_type: 'Yüklenen Dosya',
           file_url: publicUrl,
           file_type: selectedFile.type,
